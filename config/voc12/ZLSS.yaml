@@ -38,5 +38,5 @@ WEIGHT_DECAY: 5.0e-4
 INIT_MODEL: data/models/deeplab_resnet101/init/deeplabv2_resnet101_init.pth
 SAVE_DIR: .
 LOG_DIR: runs/voc12
-NUM_WORKERS: 8
+NUM_WORKERS: 16
 WARP_IMAGE: True

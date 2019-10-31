@@ -146,7 +146,7 @@ def main(dataset):
         },
         "init": {
             # The same as the coco_init parameters
-            "path_caffe_model": "data/models/deeplab_resnet101/init/deeplabv2_resnet101_init.caffemodel",
+            "path_caffe_model": "/m/tiangy/coco_stuff_anno/ResNet-101-model.caffemodel",
             "path_pytorch_model": "data/models/deeplab_resnet101/init/deeplabv2_resnet101_init.pth",
             "n_classes": 91,
         },
