@@ -101,7 +101,8 @@ def resize_target(target, size):
 @click.option("--experimentid", type=str)
 @click.option("--nshot", type=int)
 @click.option("--ishot", type=int, default=0)
-def main(config, cuda, excludeval,  embedding, continue_from, nolog, inputmix, imagedataset, experimentid, nshot, ishot ):
+@click.option("--use_caption", is_flag=True)
+def main(config, cuda, excludeval,  embedding, continue_from, nolog, inputmix, imagedataset, experimentid, nshot, ishot ,use_caption):
     frame = inspect.currentframe()
     args, _, _, values = inspect.getargvalues(frame)
     #print(values)
@@ -206,6 +207,31 @@ def main(config, cuda, excludeval,  embedding, continue_from, nolog, inputmix, i
     
     print("Visible classes:", visible_classes.size, " \nClasses are: ", visible_classes, "\nTrain Images:", train.shape[0])
 
+    if use_caption:
+        if  embedding == 'word2vec':
+            caption_embed = pickle.load(open(datadir+'/word_vectors/w2v_caption_embedding.pkl', "rb"))
+        elif embedding == 'fasttext':
+            caption_embed = pickle.load(open(datadir+'/word_vectors/fast_caption_embedding.pkl', "rb"))
+        elif embedding == 'fastnvec':
+            fast = pickle.load(open(datadir+'/word_vectors/fast_caption_embedding.pkl', "rb"))
+            w2v = pickle.load(open(datadir+'/word_vectors/w2v_caption_embedding.pkl', "rb"))
+            caption_embed = {}
+            for key in fast:
+                caption_embed[key] = np.concatenate([fast[key],w2v[key]])
+
+    if  embedding == 'word2vec':
+        class_emb = pickle.load(open(datadir+'/word_vectors/word2vec.pkl', "rb"))   
+    elif embedding == 'fasttext':
+        class_emb = pickle.load(open(datadir+'/word_vectors/fasttext.pkl', "rb"))       
+    elif embedding == 'fastnvec':
+        class_emb = np.concatenate([pickle.load(open(datadir+'/word_vectors/fasttext.pkl', "rb")), pickle.load(open(datadir+'/word_vectors/word2vec.pkl', "rb"))], axis = 1)
+    else:
+        print("invalid emb ", embedding)
+        sys.exit() 
+
+    print((class_emb.shape))
+    class_emb = F.normalize(torch.tensor(class_emb), p=2, dim=1).cuda()
+
     #a Dataset 10k or 164k
     dataset = get_dataset(CONFIG.DATASET)(train=train, test=None,
             root=CONFIG.ROOT,
@@ -216,7 +242,8 @@ def main(config, cuda, excludeval,  embedding, continue_from, nolog, inputmix, i
             warp=CONFIG.WARP_IMAGE,
             scale=(0.5, 1.5),
             flip=True,
-            visibility_mask=visibility_mask
+            visibility_mask=visibility_mask,
+            caption_embed = caption_embed
         )
 
     # DataLoader
@@ -227,18 +254,7 @@ def main(config, cuda, excludeval,  embedding, continue_from, nolog, inputmix, i
         sampler = sampler
     )
     
-    if  embedding == 'word2vec':
-        class_emb = pickle.load(open(datadir+'/word_vectors/word2vec.pkl', "rb"))
-    elif embedding == 'fasttext':
-        class_emb = pickle.load(open(datadir+'/word_vectors/fasttext.pkl', "rb"))
-    elif embedding == 'fastnvec':
-        class_emb = np.concatenate([pickle.load(open(datadir+'/word_vectors/fasttext.pkl', "rb")), pickle.load(open(datadir+'/word_vectors/word2vec.pkl', "rb"))], axis = 1)
-    else:
-        print("invalid emb ", embedding)
-        sys.exit() 
 
-    print((class_emb.shape))
-    class_emb = F.normalize(torch.tensor(class_emb), p=2, dim=1).cuda()
 
     loader_iter = iter(loader)
     DeepLab = DeepLabV2_ResNet101_MSC

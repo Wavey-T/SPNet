@@ -38,6 +38,7 @@ class _CocoStuff(data.Dataset):
         flip=True,
         preload=False,
         visibility_mask=None,
+        caption_embed=None
     ):
         self.root = root
         self.split = split
@@ -140,11 +141,16 @@ class _CocoStuff(data.Dataset):
             else:
                 image_id = self.files[index]
             image, label = self._load_data(image_id)
+            if not self.caption_embed is None:
+                c_embed = self.caption_embed[image_id[1]]
+                c_embed = torch.nn.functional.normalize(torch.Tensor(c_embed),p=2,dim=0)
         if isinstance(index, list):
             image, label = self._transform(image, label, index[1])
         else:
             image, label = self._transform(image, label, False)
             return image.astype(np.float32), label.astype(np.int64), str(image_id[1])
+        if not self.caption_embed is None:
+            return image.astype(np.float32), label.astype(np.int64), c_embed
         return image.astype(np.float32), label.astype(np.int64)
 
     def __len__(self):
